@@ -5,7 +5,6 @@ on:
     branches: ['master', 'main']
   pull_request:
     branches: ['master', 'main']
-  # Allow manual trigger
   workflow_dispatch:
 
 env:
@@ -21,27 +20,30 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🧰 Setup node env
+      - name: 🧰 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{env.NODE_VERSION}}
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: 📦 Install dependencies
-		run:  |
+        run: |
           npm install
           npm audit fix
-		  
+
       - name: ✅ Run tests
         run: npm test
 
       - name: 🛠️ Build app
         run: npm run build
 
-      - name: Upload Build Artifact
+      - name: 📦 Archive build
+        run: tar -czf ${{ env.FILENAME }}.tar.gz ./build
+
+      - name: ⬆️ Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifact          
+          name: build-artifact
           path: ${{ env.FILENAME }}.tar.gz
 
   CD:
@@ -50,37 +52,30 @@ jobs:
     needs: [CI]
 
     steps:
-      - name: Download Build Artifacts
+      - name: ⬇️ Download Build Artifact
         uses: actions/download-artifact@v4
         with:
           name: build-artifact
           path: .
 
-      - name: Copy files via SSH
+      - name: 📤 Copy files via SSH
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.SSH_HOST }}  
+          host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           source: ${{ env.FILENAME }}.tar.gz
           target: "/tmp"
 
-      - name: Execute Remote SSH Commands
+      - name: 🖥️ Execute remote SSH commands
         uses: appleboy/ssh-action@v1.2.2
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
             sudo tar -xzf /tmp/${{ env.FILENAME }}.tar.gz -C /var/www/mywebsite/
             sudo rm /tmp/${{ env.FILENAME }}.tar.gz
             sudo systemctl restart nginx
-
-
-
-
-  
-
-  
-    
