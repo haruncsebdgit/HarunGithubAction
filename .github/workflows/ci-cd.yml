@@ -28,8 +28,9 @@ jobs:
           cache: npm
 
       - name: 📦 Install dependencies
-        run: npm install
-        run: npm audit fix
+	    run: |
+          npm install
+          npm audit fix
 
       - name: ✅ Run tests
         run: npm test
