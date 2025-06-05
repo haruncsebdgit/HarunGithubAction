@@ -29,7 +29,7 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           npm install
-          npm audit fix
+          npm audit fix --force
 
       - name: ✅ Run tests
         run: npm test
